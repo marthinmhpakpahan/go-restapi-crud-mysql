@@ -4,6 +4,8 @@ import (
 	"encoding/json"
 	"github.com/gorilla/mux"
 	"net/http"
+	"fmt"
+	"io/ioutil"
 )
 
 func setupRoutes(router *mux.Router) {
@@ -83,4 +85,34 @@ func setupRoutes(router *mux.Router) {
 			respondWithSuccess(true, w)
 		}
 	}).Methods(http.MethodDelete)
+
+	router.HandleFunc("/vg/upload", func(w http.ResponseWriter, r *http.Request) {
+		fmt.Println("Upload File Hit")
+
+		r.ParseMultipartForm(10 << 20)
+		file, handler, err := r.FormFile("myFile")
+		if err != nil {
+			fmt.Println("Error Retrieving File")
+			fmt.Println(err)
+			return
+		}
+		defer file.Close()
+		fmt.Printf("Uploaded File: %+v\n", handler.Filename)
+		fmt.Printf("File Size: %+v\n", handler.Size)
+		fmt.Printf("MIME Header: %+v\n", handler.Header)
+
+		tempFile, err := ioutil.TempFile("temp-images", "upload-*.png")
+		if err != nil {
+			fmt.Println(err)
+		}
+		defer tempFile.Close()
+
+		fileBytes, err := ioutil.ReadAll(file)
+		if err != nil {
+			fmt.Println(err)
+		}
+
+		tempFile.Write(fileBytes)
+		fmt.Fprintf(w, "Successfully Uploaded File\n")
+	}).Methods(http.MethodPost)
 }
